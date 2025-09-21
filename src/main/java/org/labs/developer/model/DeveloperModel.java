@@ -9,7 +9,6 @@ import org.labs.kitchen.model.KitchenModel;
 import org.labs.serverequest.model.ServeRequest;
 import org.labs.state.model.StateModel;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -34,8 +33,11 @@ public class DeveloperModel implements Runnable {
         try {
             while (!isStopped.get()) {
                 think();
-                boolean served = callWaiter();
-                if (!served) break;
+                var served = placeOrder();
+                if (!served) {
+                    isStopped.set(true);
+                    break;
+                }
 
                 state.takeForks(id, leftFork, rightFork);
                 eat();
@@ -44,10 +46,6 @@ public class DeveloperModel implements Runnable {
         } catch (InterruptedException ignored) {
             log.warn("Поток {} был прерван", Thread.currentThread().getName());
         }
-    }
-
-    public void stop() {
-        isStopped.set(true);
     }
 
     private void think() throws InterruptedException {
@@ -61,22 +59,17 @@ public class DeveloperModel implements Runnable {
         eatCount.incrementAndGet();
     }
 
-    private boolean callWaiter() throws InterruptedException {
-        CompletableFuture<Boolean> servedFuture = new CompletableFuture<>();
-        var serveRequest = new ServeRequest(id, servedFuture);
-        kitchen.submitRequest(serveRequest);
-
-        boolean isServed;
+    private boolean placeOrder() throws InterruptedException {
         try {
-            isServed = servedFuture.get();
+            var serveRequest = new ServeRequest(id);
+            kitchen.submitRequest(serveRequest);
+            var isServed = serveRequest.getServed().get();
+            if (!isServed) {
+                log.info("Разработчик {} не может получить новую порцию. Его обед завершен", id + 1);
+                return false;
+            }
         } catch (ExecutionException e) {
             log.warn("Разработчик {} не смог вызвать официанта", id + 1, e);
-            return false;
-        }
-
-        if (!isServed) {
-            log.info("Разработчик {} не может получить новую порцию. Прием пищи прекращен", id + 1);
-            isStopped.set(true);
             return false;
         }
         return true;
