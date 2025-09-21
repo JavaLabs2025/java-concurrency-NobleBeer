@@ -2,7 +2,7 @@ package org.labs.state.model;
 
 import lombok.extern.slf4j.Slf4j;
 import org.labs.developer.model.DeveloperModel;
-import org.labs.fork.model.ForkModel;
+import org.labs.spoon.model.SpoonModel;
 
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -31,17 +31,17 @@ public class StateModel {
         });
     }
 
-    public void takeForks(int id, ForkModel leftFork, ForkModel rightFork) {
+    public void takeSpoons(int id, SpoonModel leftSpoon, SpoonModel rightSpoon) {
         lock.lock();
         try {
             updateDeveloperState(id, State.HUNGRY);
 
-            while (!developers[id].getIsStopped().get() && (!leftFork.isAvailable() || !rightFork.isAvailable())) {
+            while (!developers[id].getIsStopped().get() && (!leftSpoon.isAvailable() || !rightSpoon.isAvailable())) {
                 conditions[id].await();
             }
 
-            leftFork.setAvailable(false);
-            rightFork.setAvailable(false);
+            leftSpoon.setAvailable(false);
+            rightSpoon.setAvailable(false);
 
             updateDeveloperState(id, State.EATING);
 
@@ -54,13 +54,13 @@ public class StateModel {
     }
 
 
-    public void putForks(int developerId, ForkModel leftFork, ForkModel rightFork) {
+    public void putSpoons(int developerId, SpoonModel leftSpoon, SpoonModel rightSpoon) {
         lock.lock();
         try {
             updateDeveloperState(developerId, State.DISCUSS_TEACHERS);
 
-            leftFork.setAvailable(true);
-            rightFork.setAvailable(true);
+            leftSpoon.setAvailable(true);
+            rightSpoon.setAvailable(true);
 
             conditions[(developerId + 1) % developerCount].signalAll();
             conditions[(developerId + developerCount - 1) % developerCount].signalAll();

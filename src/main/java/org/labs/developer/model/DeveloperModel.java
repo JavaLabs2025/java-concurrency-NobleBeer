@@ -4,7 +4,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.labs.common.MathUtils;
-import org.labs.fork.model.ForkModel;
+import org.labs.spoon.model.SpoonModel;
 import org.labs.kitchen.model.KitchenModel;
 import org.labs.serverequest.model.ServeRequest;
 import org.labs.state.model.StateModel;
@@ -19,8 +19,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class DeveloperModel implements Runnable {
 
     private final int id;
-    private final ForkModel leftFork;
-    private final ForkModel rightFork;
+    private final SpoonModel leftSpoon;
+    private final SpoonModel rightSpoon;
     private final StateModel state;
     private final KitchenModel kitchen;
 
@@ -39,9 +39,9 @@ public class DeveloperModel implements Runnable {
                     break;
                 }
 
-                state.takeForks(id, leftFork, rightFork);
+                state.takeSpoons(id, leftSpoon, rightSpoon);
                 eat();
-                state.putForks(id, leftFork, rightFork);
+                state.putSpoons(id, leftSpoon, rightSpoon);
             }
         } catch (InterruptedException ignored) {
             log.warn("Поток {} был прерван", Thread.currentThread().getName());

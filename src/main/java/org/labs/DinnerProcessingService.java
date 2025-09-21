@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.labs.common.AsyncUtils;
 import org.labs.config.Config;
 import org.labs.developer.model.DeveloperModel;
-import org.labs.fork.model.ForkModel;
+import org.labs.spoon.model.SpoonModel;
 import org.labs.kitchen.model.KitchenModel;
 import org.labs.state.model.StateModel;
 import org.labs.waiter.model.WaiterModel;
@@ -26,8 +26,8 @@ public class DinnerProcessingService {
         log.info("Время {} мс. Обед начался", startDate);
 
         var kitchen = new KitchenModel(new AtomicInteger(DISH_COUNT));
-        var forks = createForks();
-        var developers = createDevelopers(forks, kitchen);
+        var spoons = createSpoons();
+        var developers = createDevelopers(spoons, kitchen);
         var waiters = createWaiters(kitchen);
 
         startDeveloperThreads(developers);
@@ -42,20 +42,20 @@ public class DinnerProcessingService {
         return developers;
     }
 
-    private ForkModel[] createForks() {
+    private SpoonModel[] createSpoons() {
         return IntStream.range(0, TARGET_RESOURCE_COUNT)
-                .mapToObj(ForkModel::new)
-                .toArray(ForkModel[]::new);
+                .mapToObj(SpoonModel::new)
+                .toArray(SpoonModel[]::new);
     }
 
-    private DeveloperModel[] createDevelopers(ForkModel[] forks, KitchenModel kitchen) {
+    private DeveloperModel[] createDevelopers(SpoonModel[] spoons, KitchenModel kitchen) {
         var developers = new DeveloperModel[TARGET_RESOURCE_COUNT];
         var state = new StateModel(developers);
 
         IntStream.range(0, developers.length).forEach(number -> {
-            var leftFork = forks[number];
-            var rightFork = forks[(number + 1) % forks.length];
-            developers[number] = new DeveloperModel(number, leftFork, rightFork, state, kitchen);
+            var leftSpoon = spoons[number];
+            var rightSpoon = spoons[(number + 1) % spoons.length];
+            developers[number] = new DeveloperModel(number, leftSpoon, rightSpoon, state, kitchen);
         });
         return developers;
     }
