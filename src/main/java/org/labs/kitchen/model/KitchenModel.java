@@ -4,14 +4,14 @@ import lombok.RequiredArgsConstructor;
 import org.labs.serverequest.model.ServeRequest;
 
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RequiredArgsConstructor
 public class KitchenModel {
 
     private final AtomicInteger remainingDishCount;
-    private final BlockingQueue<ServeRequest> requestQueue = new LinkedBlockingQueue<>();
+    private final BlockingQueue<ServeRequest> requestQueue = new PriorityBlockingQueue<>();
 
     public void submitRequest(ServeRequest req) throws InterruptedException {
         requestQueue.put(req);

@@ -9,6 +9,10 @@ import org.labs.kitchen.model.KitchenModel;
 import org.labs.state.model.StateModel;
 import org.labs.waiter.model.WaiterModel;
 
+import java.util.Arrays;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
@@ -16,10 +20,11 @@ import java.util.stream.IntStream;
 public class DinnerProcessingService {
 
     private static final int TARGET_RESOURCE_COUNT = Config.DEVELOPER_COUNT;
-    private static final Thread[] DEVELOPER_THREADS = new Thread[TARGET_RESOURCE_COUNT];
     private static final int DISH_COUNT = Config.DISH_COUNT;
     private static final int WAITER_COUNT = Config.WAITER_COUNT;
-    private static final Thread[] WAITER_THREADS = new Thread[WAITER_COUNT];
+
+    private final ExecutorService developerPool = Executors.newWorkStealingPool(TARGET_RESOURCE_COUNT);
+    private final ExecutorService waiterPool = Executors.newWorkStealingPool(WAITER_COUNT);
 
     public DeveloperModel[] runDinner() {
         var startDate = System.currentTimeMillis();
@@ -30,8 +35,8 @@ public class DinnerProcessingService {
         var developers = createDevelopers(spoons, kitchen);
         var waiters = createWaiters(kitchen);
 
-        startDeveloperThreads(developers);
-        startWaiterThreads(waiters);
+        startDeveloperTasks(developers);
+        startWaiterTasks(waiters);
 
         monitorDinner(kitchen);
 
@@ -62,24 +67,16 @@ public class DinnerProcessingService {
 
     private WaiterModel[] createWaiters(KitchenModel kitchen) {
         var waiters = new WaiterModel[WAITER_COUNT];
-        IntStream.range(0, WAITER_COUNT).forEach(number -> {
-            waiters[number] = new WaiterModel(number, kitchen);
-        });
+        IntStream.range(0, WAITER_COUNT).forEach(number -> waiters[number] = new WaiterModel(number, kitchen));
         return waiters;
     }
 
-    private void startWaiterThreads(WaiterModel[] waiters) {
-        IntStream.range(0, waiters.length).forEach(number -> {
-            WAITER_THREADS[number] = new Thread(waiters[number], "waiter-" + (number + 1));
-            WAITER_THREADS[number].start();
-        });
+    private void startDeveloperTasks(DeveloperModel[] developers) {
+        Arrays.stream(developers).forEach(developerPool::submit);
     }
 
-    private void startDeveloperThreads(DeveloperModel[] developers) {
-        IntStream.range(0, developers.length).forEach(number -> {
-            DEVELOPER_THREADS[number] = new Thread(developers[number], "developer-" + (number + 1));
-            DEVELOPER_THREADS[number].start();
-        });
+    private void startWaiterTasks(WaiterModel[] waiters) {
+        Arrays.stream(waiters).forEach(waiterPool::submit);
     }
 
     private void monitorDinner(KitchenModel kitchen) {
@@ -91,7 +88,19 @@ public class DinnerProcessingService {
 
     private void stopDinner() {
         AsyncUtils.waitMillis(Config.DINNER_DURATION_IN_MS);
-        AsyncUtils.stopThreads(WAITER_THREADS);
-        AsyncUtils.stopThreads(DEVELOPER_THREADS);
+        shutdownAndAwaitTermination(developerPool);
+        shutdownAndAwaitTermination(waiterPool);
+    }
+
+    private void shutdownAndAwaitTermination(ExecutorService pool) {
+        pool.shutdown();
+        try {
+            if (!pool.awaitTermination(5, TimeUnit.SECONDS)) {
+                pool.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            pool.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
     }
 }

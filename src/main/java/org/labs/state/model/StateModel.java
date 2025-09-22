@@ -16,13 +16,12 @@ public class StateModel {
     private final int developerCount;
     private final DeveloperModel[] developers;
     private final State[] state;
-    private final Lock lock;
+    private final Lock lock = new ReentrantLock();;
     private final Condition[] conditions;
 
     public StateModel(DeveloperModel[] developers) {
         this.developers = developers;
         this.developerCount = developers.length;
-        lock = new ReentrantLock();
         state = new State[developerCount];
         conditions = new Condition[developerCount];
         IntStream.range(0, developerCount).forEach(i -> {

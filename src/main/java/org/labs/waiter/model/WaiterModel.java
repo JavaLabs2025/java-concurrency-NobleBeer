@@ -14,21 +14,20 @@ public class WaiterModel implements Runnable {
     @Override
     public void run() {
         try {
-            while (true) {
+            while (!(kitchen.isDepleted() && kitchen.isRequestQueueEmpty())) {
                 var serveRequest = kitchen.takeRequest();
                 if (serveRequest == null) {
                     continue;
                 }
 
                 var isServed = kitchen.takeDishIfAvailable();
-                log.debug("Официант {} начал обслуживание разработчика {} -> {}", id + 1, serveRequest.getDeveloperId() + 1, isServed);
-                serveRequest.getServed().complete(isServed);
+                log.debug("Официант {} начал обслуживание разработчика {} -> {}",
+                        id + 1, serveRequest.getDeveloperId() + 1, isServed);
 
-                if (!isServed && kitchen.isDepleted() && kitchen.isRequestQueueEmpty()) {
-                    log.info("Официант {} разнес все блюда, заказы закончились", id + 1);
-                    break;
-                }
+                serveRequest.getServed().complete(isServed);
             }
+
+            log.info("Официант {} разнес все блюда, заказы закончились", id + 1);
         } catch (InterruptedException e) {
             log.warn("Поток {} был прерван", Thread.currentThread().getName());
             Thread.currentThread().interrupt();

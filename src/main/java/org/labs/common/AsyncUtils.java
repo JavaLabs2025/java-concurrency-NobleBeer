@@ -2,28 +2,21 @@ package org.labs.common;
 
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Arrays;
+import java.util.concurrent.ThreadLocalRandom;
 
 @Slf4j
 public class AsyncUtils {
 
-    public static void waitMillis(long millis) {
-        if (millis <= 0) {
+    public static void waitMillis(long maxMillis) {
+        if (maxMillis <= 0) {
             return;
         }
         try {
-            Thread.sleep(millis);
+            long delay = ThreadLocalRandom.current().nextLong(maxMillis + 1);
+            Thread.sleep(delay);
         } catch (InterruptedException e) {
             log.warn("Поток {} был прерван", Thread.currentThread().getName());
             Thread.currentThread().interrupt();
         }
-    }
-
-    public static void stopThreads(Thread[] threads) {
-        Arrays.stream(threads)
-                .filter(t -> !t.isInterrupted())
-                .forEach(Thread::interrupt);
-
-        waitMillis(100);
     }
 }
